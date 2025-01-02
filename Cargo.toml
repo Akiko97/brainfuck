@@ -1,0 +1,30 @@
+[package]
+name = "bf"
+version = "0.0.1"
+authors = ["Akiko97 <37476779+Akiko97@users.noreply.github.com>"]
+description = "A simple brainfuck interpreter"
+license = "MIT"
+repository = "https://github.com/Akiko97/brainfuck"
+homepage = "https://github.com/Akiko97/brainfuck"
+documentation = "https://github.com/Akiko97/brainfuck"
+readme = "README.md"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+anyhow = "1.0"
+thiserror = "2.0"
+quanta = "0.12"
+
+peg = "0.8"
+
+cranelift = "0.115"
+cranelift-module = "0.115"
+cranelift-jit = "0.115"
+cranelift-native = "0.115"
+
+[profile.release]
+strip = true
+lto = true
+opt-level = 3
+codegen-units = 1
