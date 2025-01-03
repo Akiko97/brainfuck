@@ -2,7 +2,7 @@ mod vm;
 mod cranelift;
 mod llvm;
 
-use std::{io::{Read, Write}};
+use std::{io::{Read, Write}, time::Duration};
 
 use crate::ir::BrainfuckIR;
 
@@ -10,7 +10,7 @@ pub trait VMInterface {
     fn new(ir: Vec<BrainfuckIR>, input: Box<dyn Read>, output: Box<dyn Write>) -> anyhow::Result<Self>
     where
         Self: Sized;
-    fn run(&mut self) -> anyhow::Result<()>;
+    fn run(&mut self) -> anyhow::Result<Duration>;
 }
 
 pub const MEMORY_SIZE: usize = 4 * 1024 * 1024; // 4 MiB

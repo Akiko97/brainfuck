@@ -5,7 +5,6 @@ use std::{
     io::{stdin, stdout},
     path::PathBuf,
 };
-use quanta::Clock;
 
 use clap::{Parser, Subcommand};
 use ir::brainfuck_parser::compile_peg;
@@ -42,7 +41,6 @@ fn main() -> anyhow::Result<()> {
     let src = std::fs::read_to_string(&opt.source_file)?;
     let ir = compile_peg(src.as_str())?;
 
-    let clock = Clock::new();
     let duration = match opt.command {
         Some(Commands::Jit {dump_ir, method}) => {
             match method {
@@ -60,11 +58,7 @@ fn main() -> anyhow::Result<()> {
                         println!("{}", vm.get_ir());
                     }
 
-                    let start = clock.now();
-                    vm.run()?;
-                    let end = clock.now();
-
-                    end - start
+                    vm.run()?
                 }
                 JitMethod::LLVM => {
                     println!("Running program with {:?} JIT:", JitMethod::LLVM);
@@ -82,11 +76,7 @@ fn main() -> anyhow::Result<()> {
                         println!("{}", vm.get_ir()?);
                     }
 
-                    let start = clock.now();
-                    vm.run()?;
-                    let end = clock.now();
-
-                    end - start
+                    vm.run()?
                 }
             }
         }
@@ -98,13 +88,7 @@ fn main() -> anyhow::Result<()> {
                 Box::new(stdout().lock()),
             )?;
 
-
-
-            let start = clock.now();
-            vm.run()?;
-            let end = clock.now();
-
-            end - start
+            vm.run()?
         }
     };
 

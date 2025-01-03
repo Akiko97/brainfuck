@@ -1,4 +1,4 @@
-use std::io::{Read, Write};
+use std::{io::{Read, Write}, time::Duration};
 use thiserror::Error;
 
 use inkwell::builder::Builder;
@@ -278,12 +278,17 @@ impl VMInterface for LLVM<'_> {
         })
     }
 
-    fn run(&mut self) -> anyhow::Result<()> {
+    fn run(&mut self) -> anyhow::Result<Duration> {
         let func = self.jit_context.as_ref().ok_or_else(|| LLVMError::RunWithoutCompile)?
             .jit_func.as_ref().ok_or_else(|| LLVMError::RunWithoutCompile)?;
 
+        let clock = quanta::Clock::new();
+
+        let start = clock.now();
         let _ = unsafe { func.call(self.memory.as_mut_ptr(), &mut self.io) };
-        Ok(())
+        let end = clock.now();
+
+        Ok(end - start)
     }
 }
 

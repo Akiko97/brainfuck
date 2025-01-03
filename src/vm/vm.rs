@@ -1,4 +1,4 @@
-use std::io::{Read, Write};
+use std::{io::{Read, Write}, time::Duration};
 use thiserror::Error;
 
 use crate::ir::BrainfuckIR;
@@ -41,10 +41,15 @@ impl VMInterface for VM {
         })
     }
 
-    fn run(&mut self) -> anyhow::Result<()> {
+    fn run(&mut self) -> anyhow::Result<Duration> {
+        let clock = quanta::Clock::new();
+
+        let start = clock.now();
         let mut ptr = 0;
         self.context.run_block(&self.ir, &mut ptr)?;
-        Ok(())
+        let end = clock.now();
+
+        Ok(end - start)
     }
 }
 

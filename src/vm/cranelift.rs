@@ -1,4 +1,4 @@
-use std::io::{Read, Write};
+use std::{io::{Read, Write}, time::Duration};
 use cranelift::codegen::ir::FuncRef;
 use cranelift::codegen::write_function;
 use cranelift::prelude::*;
@@ -292,19 +292,23 @@ impl VMInterface for VMCranelift {
         })
     }
 
-    fn run(&mut self) -> anyhow::Result<()> {
+    fn run(&mut self) -> anyhow::Result<Duration> {
         // create func: fn(mem: *mut u8, ctx: *mut IO<'io>) -> i64
         let func = unsafe {
             std::mem::transmute::<_, JITFunc>(self.func)
         };
 
+        let clock = quanta::Clock::new();
+
         // call func
+        let start = clock.now();
         let _ = func(
             self.context.memory.as_mut_ptr(),
             &mut self.context.io,
         );
+        let end = clock.now();
 
-        Ok(())
+        Ok(end - start)
     }
 }
 
