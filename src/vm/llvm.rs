@@ -30,6 +30,8 @@ enum LLVMError {
     FunctionNotImported(String),
     #[error("LLVM io error: {0}")]
     IOError(String),
+    #[error("Invalid IR Found: {0}")]
+    InvalidIR(String),
 }
 
 struct JITContext<'ctx> {
@@ -108,6 +110,8 @@ impl<'ctx> JITContext<'ctx> {
         let zero = i64_type.const_zero();
         self.builder.build_return(Some(&zero))?;
 
+        self.module.verify().map_err(|e| LLVMError::InvalidIR(e.to_string()))?;
+
         self.jit_func = unsafe {
             self.execution_engine
                 .get_function("bf_jit_main").ok()
@@ -160,10 +164,11 @@ impl<'ctx> JITContext<'ctx> {
                 let current_ptr = self.builder
                     .build_load(ptr_type, *ptr, "mem_ptr")?
                     .into_pointer_value();
+                let offset = -(*n as i64);
                 let new_ptr = unsafe {
                     self.builder.build_gep(ptr_type, current_ptr, &[self.context
                         .i64_type()
-                        .const_int((*n as i64).wrapping_neg() as u64, false)], "new_ptr")?
+                        .const_int(offset as u64, true)], "new_ptr")?
                 };
                 self.builder.build_store(*ptr, new_ptr)?;
             }
