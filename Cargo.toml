@@ -27,6 +27,6 @@ inkwell = { version = "0.5", features = ["llvm18-0"] }
 
 [profile.release]
 strip = true
-lto = true
+lto = false # Disable LTO because it causes segmentation faults during LLVM IR compilation
 opt-level = 3
 codegen-units = 1
