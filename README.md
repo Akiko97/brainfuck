@@ -14,16 +14,16 @@ cargo build -- release
 ./target/release/bf <path-to-bf-file>
 ```
 
-Or run with cranelift-jit:
+Or run with cranelift-jit/llvm-jit:
 
 ```shell
-./target/release/bf <path-to-bf-file> jit --method cranelift
+./target/release/bf <path-to-bf-file> jit --method [cranelift | llvm]
 ```
 
-If you want to dump the cranelift-ir:
+If you want to dump the ir:
 
 ```shell
-./target/release/bf <path-to-bf-file> jit --method cranelift --dump-ir
+./target/release/bf <path-to-bf-file> jit --method [cranelift | llvm] --dump-ir
 ```
 
 ## LICENSE
