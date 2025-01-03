@@ -9,7 +9,7 @@ use quanta::Clock;
 
 use clap::{Parser, Subcommand};
 use ir::brainfuck_parser::compile_peg;
-use vm::{VMInterface, VM, VMCranelift};
+use vm::{VMInterface, VM, VMCranelift, LLVM};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -33,6 +33,7 @@ enum Commands {
 #[derive(clap::ValueEnum, Clone, Debug)]
 enum JitMethod {
     Cranelift,
+    LLVM,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -65,6 +66,28 @@ fn main() -> anyhow::Result<()> {
 
                     end - start
                 }
+                JitMethod::LLVM => {
+                    println!("Running program with {:?} JIT:", JitMethod::LLVM);
+                    use inkwell::context::Context;
+                    let context = Context::create();
+                    let mut vm = LLVM::new(
+                        ir,
+                        Box::new(stdin().lock()),
+                        Box::new(stdout().lock()),
+                    )?;
+
+                    vm.compile(&context)?;
+
+                    if dump_ir {
+                        println!("{}", vm.get_ir()?);
+                    }
+
+                    let start = clock.now();
+                    vm.run()?;
+                    let end = clock.now();
+
+                    end - start
+                }
             }
         }
         _ => {
@@ -74,6 +97,8 @@ fn main() -> anyhow::Result<()> {
                 Box::new(stdin().lock()),
                 Box::new(stdout().lock()),
             )?;
+
+
 
             let start = clock.now();
             vm.run()?;

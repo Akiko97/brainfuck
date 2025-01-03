@@ -12,22 +12,22 @@ pub enum RuntimeError {
     Overflow,
 }
 
-struct VMContext<'io> {
+struct VMContext {
     memory: Box<[u8]>,
-    input: Box<dyn Read + 'io>,
-    output: Box<dyn Write + 'io>,
+    input: Box<dyn Read>,
+    output: Box<dyn Write>,
 }
 
-pub struct VM<'io> {
+pub struct VM {
     ir: Vec<BrainfuckIR>,
-    context: VMContext<'io>,
+    context: VMContext,
 }
 
-impl<'io> VMInterface<'io> for VM<'io> {
+impl VMInterface for VM {
     fn new(
         ir: Vec<BrainfuckIR>,
-        input: Box<dyn Read + 'io>,
-        output: Box<dyn Write + 'io>,
+        input: Box<dyn Read>,
+        output: Box<dyn Write>,
     ) -> anyhow::Result<Self> {
         let memory = vec![0; MEMORY_SIZE].into_boxed_slice();
 
@@ -48,7 +48,7 @@ impl<'io> VMInterface<'io> for VM<'io> {
     }
 }
 
-impl<'io> VMContext<'io> {
+impl VMContext {
     fn run_block(&mut self, block: &[BrainfuckIR], ptr: &mut usize) -> anyhow::Result<()> {
         let mut pc = 0usize;
         while pc < block.len() {

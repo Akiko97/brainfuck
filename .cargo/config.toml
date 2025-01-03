@@ -1,0 +1,8 @@
+[target.aarch64-apple-darwin]
+linker = "/opt/homebrew/opt/llvm@18/bin/clang"
+
+[env]
+LLVM_SYS_180_PREFIX = "/opt/homebrew/opt/llvm@18"
+LIBRARY_PATH = "/opt/homebrew/opt/llvm@18/lib:/opt/homebrew/opt/zstd/lib"
+C_INCLUDE_PATH = "/opt/homebrew/opt/llvm@18/include"
+CPLUS_INCLUDE_PATH = "/opt/homebrew/opt/llvm@18/include"

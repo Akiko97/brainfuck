@@ -6,9 +6,11 @@ use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{FuncId, Linkage, Module};
 
 use crate::ir::BrainfuckIR;
-use crate::vm::{VMInterface, MEMORY_SIZE};
+use crate::vm::{VMInterface, IO, MEMORY_SIZE, bf_put, bf_get};
 
-struct JITContext<'io> {
+type JITFunc = fn(*mut u8, *mut IO) -> i64;
+
+struct JITContext {
     // cranelift jit
     module: JITModule,
     builder_ctx: FunctionBuilderContext,
@@ -16,12 +18,11 @@ struct JITContext<'io> {
     ir: String,
     // context
     memory: Vec<u8>,
-    input: Box<dyn Read + 'io>,
-    output: Box<dyn Write + 'io>,
+    io: IO,
 }
 
-impl<'io> JITContext<'io> {
-    fn new(input: Box<dyn Read + 'io>, output: Box<dyn Write + 'io>) -> anyhow::Result<Self> {
+impl JITContext {
+    fn new(input: Box<dyn Read>, output: Box<dyn Write>) -> anyhow::Result<Self> {
         let mut flag_builder = settings::builder();
         flag_builder.set("opt_level", "speed_and_size")?;
 
@@ -44,8 +45,10 @@ impl<'io> JITContext<'io> {
             ctx: codegen::Context::new(),
             ir: String::new(),
             memory: vec![0; MEMORY_SIZE],
-            input,
-            output,
+            io: IO {
+                input,
+                output,
+            },
         })
     }
 
@@ -58,6 +61,7 @@ impl<'io> JITContext<'io> {
             let sig = &mut self.ctx.func.signature;
             sig.params.push(AbiParam::new(types::I64)); // memory_ptr
             sig.params.push(AbiParam::new(types::I64)); // context_ptr
+            sig.returns.push(AbiParam::new(types::I64)); //  return value
         }
 
         // register function
@@ -117,7 +121,7 @@ impl<'io> JITContext<'io> {
             codegen_bf_block(&mut func_ctx, &memory_ptr, &pointer_var, ir, &put_func_ref, &get_sig_ref, &context_ptr)?;
 
             // return void
-            func_ctx.ins().return_(&[]);
+            func_ctx.ins().return_(&[Value::from_u32(0)]);
             func_ctx.finalize();
         }
 
@@ -269,17 +273,17 @@ fn codegen_bf_block(
     Ok(())
 }
 
-pub struct VMCranelift<'io> {
+pub struct VMCranelift {
     ir: Vec<BrainfuckIR>,
-    context: JITContext<'io>,
+    context: JITContext,
     func: *const u8,
 }
 
-impl<'io> VMInterface<'io> for VMCranelift<'io> {
+impl VMInterface for VMCranelift {
     fn new(
         ir: Vec<BrainfuckIR>,
-        input: Box<dyn Read + 'io>,
-        output: Box<dyn Write + 'io>,
+        input: Box<dyn Read>,
+        output: Box<dyn Write>,
     ) -> anyhow::Result<Self> {
         Ok(Self {
             ir,
@@ -289,20 +293,22 @@ impl<'io> VMInterface<'io> for VMCranelift<'io> {
     }
 
     fn run(&mut self) -> anyhow::Result<()> {
-        // create func: fn(mem: *mut u8, ctx: *mut JITContext<'io>) -> ()
-        let func = unsafe { std::mem::transmute::<_, fn(*mut u8, *mut JITContext<'io>)>(self.func) };
+        // create func: fn(mem: *mut u8, ctx: *mut IO<'io>) -> i64
+        let func = unsafe {
+            std::mem::transmute::<_, JITFunc>(self.func)
+        };
 
         // call func
-        func(
+        let _ = func(
             self.context.memory.as_mut_ptr(),
-            &mut self.context,
+            &mut self.context.io,
         );
 
         Ok(())
     }
 }
 
-impl<'io> VMCranelift<'io> {
+impl VMCranelift {
     pub fn compile(&mut self) -> anyhow::Result<()> {
         // compile
         let func_id = self.context.compile_brainfuck_ir(&self.ir)?;
@@ -316,27 +322,5 @@ impl<'io> VMCranelift<'io> {
 
     pub fn get_ir(&self) -> String {
         self.context.ir.clone()
-    }
-}
-
-#[no_mangle]
-extern "C" fn bf_put(context: *mut JITContext, ch: u8) {
-    unsafe {
-        // get JITContext
-        let ctx = &mut *context;
-        // write to ctx.output
-        ctx.output.write_all(&[ch]).unwrap();
-    }
-}
-
-#[no_mangle]
-extern "C" fn bf_get(context: *mut JITContext) -> u8 {
-    unsafe {
-        // get JITContext
-        let ctx = &mut *context;
-        // read from ctx.input
-        let mut buffer = [0u8; 1];
-        ctx.input.read(buffer.as_mut()).unwrap();
-        buffer[0]
     }
 }

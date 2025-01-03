@@ -23,6 +23,8 @@ cranelift-module = "0.115"
 cranelift-jit = "0.115"
 cranelift-native = "0.115"
 
+inkwell = { version = "0.5", features = ["llvm18-0"] }
+
 [profile.release]
 strip = true
 lto = true
